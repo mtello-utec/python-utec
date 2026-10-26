@@ -223,7 +223,7 @@ def actividad(linea, celda):
         print(f"⚠️ No existe la actividad '{aid}'. Disponibles: {', '.join(sorted(VALIDACIONES))}")
         return
     if not ALUMNO:
-        print("⚠️ Primero ejecuta la celda de inicio (quiz_python.iniciar()).")
+        print("⚠️ Primero ejecuta la celda de inicio (actividades_listas.iniciar()).")
         return
     titulo, fn = VALIDACIONES[aid]
     antes = _snapshot(ip.user_ns)
