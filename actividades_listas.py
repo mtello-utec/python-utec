@@ -6,7 +6,7 @@ Celda de inicio del notebook:
     import actividades_listas
     actividades_listas.iniciar()
 
-Actividades: t1a01, t1a02, t1a03, t1a04, t1a05, t1a06, t1a07, t1a08, t1a09, t1a10, t1a11, t1a12, t1a13, t1a14, t1a15, t1a16, t1a17, t1a18, t1a19, t1a20, t1a21
+Actividades: t1a01, t1a02, t1a03, t1a04, t1a05, t1a06, t1a07, t1a08, t1a09, t1a10, t1a11, t1a12, t1a13, t1a14, t1a15, t1a16, t1a17, t1a18, t1a19, t1a20, t1a21, t1a22, t1a23, t1a24
 Cada una se resuelve en una celda que empieza con:  %%actividad t1a01
 """
 import ast
@@ -23,7 +23,7 @@ import unicodedata
 URL_REGISTRO = "https://script.google.com/macros/s/AKfycbx_VuVpxLvHvNEbhTDlXBtyMgZWTdAFow-lwcWXBdH1GVAnOfitV8r_F4HxPmtJnWNgnw/exec"                 # URL del Apps Script publicado (termina en /exec)
 TOKEN = "utec2026mts"       # Debe coincidir con TOKEN en Code.gs
 CURSO = "UTEC Python M2 - Listas"
-VERSION = "2026-10-26 v2"
+VERSION = "2026-11-03 v3"
 # ===============================================================================
 
 ALUMNO = None
@@ -272,7 +272,7 @@ def iniciar(nombre=None):
         nombre = input("Escribe tu nombre y apellido: ").strip()
     ALUMNO = re.sub(r"\s+", " ", nombre).strip()
     ip.register_magic_function(actividad, "cell", "actividad")
-    print(f"👋 Hola {ALUMNO}. Listo: resuelve cada actividad en su celda (empieza con %%actividad).  [versión 2026-10-26 v2]")
+    print(f"👋 Hola {ALUMNO}. Listo: resuelve cada actividad en su celda (empieza con %%actividad).  [versión 2026-11-03 v3]")
 
 
 # ============================================================================ ACTIVIDADES
@@ -588,4 +588,74 @@ def _(c):
         (c.usa(r"universidad(es)?\s*\[\s*(-3|len\s*\(\s*universidad(es)?\s*\)\s*-\s*3)\s*:\s*\]"),
          "Usa slicing: universidades[-3:]."),
         (c.mostro(l[-3:]), f"Muestra el resultado ({l[-3:]})."),
+    ]
+
+
+# ------------------------------------------------------------------ actividades avanzadas
+def _numeros_salida(c):
+    """Números impresos (acepta 70,000 / 70000 / 70000.0)."""
+    t = c.salida + ("" if c.valor is None else "\n" + str(c.valor))
+    return [float(x.replace(",", "")) for x in re.findall(r"\d[\d,]*(?:\.\d+)?", t)]
+
+
+_CLIENTES_OK = ["Ana Torres", "Carlos Diaz", "Luis Perez", "Maria Rojas", "Pedro Soto"]
+
+
+@validacion("t1a22", "Limpieza de clientes")
+def _(c):
+    l = c.get("clientes_limpios")
+    if not isinstance(l, list):
+        return [(False, "Guarda el resultado final en una lista llamada clientes_limpios.")] + [(False, "")] * 4
+    return [
+        (all(isinstance(x, str) and x.strip() for x in l) and len(l) == len(set(l)),
+         "La lista no debe tener vacíos ni duplicados."),
+        (all(x == " ".join(x.split()).title() for x in l if isinstance(x, str)),
+         "Cada nombre debe quedar sin espacios sobrantes y en formato título (Ana Torres)."),
+        (l == _CLIENTES_OK, "Revisa el resultado: deben quedar 5 clientes únicos, ordenados alfabéticamente."),
+        (c.usa(r"\bin\s+clientes\b") and not c.usa(r"clientes_limpios\s*=\s*\[\s*['\"]"),
+         "Construye la lista a partir de clientes (con for o comprensión), no la escribas a mano."),
+        (c.mostro(l) and 5 in _numeros_salida(c), "Imprime la lista final y la cantidad de registros descartados."),
+    ]
+
+
+_VENTAS = [120, 135, 128, 150, 162, 158, 170, 165, 180, 176, 195, 210]
+_MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+_VARIACION = [(b - a) / a * 100 for a, b in zip(_VENTAS, _VENTAS[1:])]
+_ACUM = [sum(_VENTAS[:i + 1]) for i in range(12)]
+
+
+@validacion("t1a23", "Análisis de ventas")
+def _(c):
+    v, caidas, acum = c.get("variacion"), c.get("caidas"), c.get("acumulado")
+    nums = _numeros_salida(c)
+    var_ok = (isinstance(v, list) and len(v) == 11 and all(_es_num(x) for x in v)
+              and all(abs(x - y) <= 0.051 for x, y in zip(v, _VARIACION)))
+    return [
+        (var_ok, "variacion debe tener 11 valores: (venta actual - anterior) / anterior * 100, redondeado a 1 decimal."),
+        (c.usa(r"variacion\s*=\s*\[[^\]]*\bfor\b"), "Calcula variacion con comprensión de listas."),
+        (caidas == ["Mar", "Jun", "Ago", "Oct"], "caidas debe contener los meses en que la venta bajó respecto al mes anterior."),
+        (acum == _ACUM, "acumulado debe tener la venta acumulada mes a mes (el último valor es 1949)."),
+        (c.dijo("oct") and c.dijo("dic") and 581 in nums, "Muestra el mejor trimestre y su venta total."),
+    ]
+
+
+_INV_VALOR = {"laptop": 42000, "mouse": 6750, "silla": 12600, "monitor": 22250, "escritorio": 6240, "lampara": 5700}
+
+
+@validacion("t1a24", "Tabla de inventario")
+def _(c):
+    inv = c.get("inventario")
+    if not isinstance(inv, list) or not all(isinstance(f, list) for f in inv):
+        return [(False, "Usa la lista de listas inventario.")] + [(False, "")] * 4
+    filas_ok = len(inv) == 6 and all(len(f) == 5 and f[4] == f[2] * f[3] for f in inv)
+    bajo = c.get("bajo_stock")
+    vals = [f[4] for f in inv if len(f) >= 5]
+    nums = _numeros_salida(c)
+    return [
+        (filas_ok, "Agrega a cada fila el valor de inventario (precio × stock) como quinto elemento."),
+        (isinstance(bajo, list) and {_norm(x) for x in bajo} == {"laptop", "escritorio"} and len(bajo) == 2,
+         "bajo_stock debe tener los nombres de los productos con stock menor a 20."),
+        (filas_ok and vals == sorted(vals, reverse=True), "Ordena inventario de mayor a menor valor (sort con key y reverse=True)."),
+        (c.en_orden(["Laptop", "Monitor", "Silla"]), "Imprime el top 3 por valor de inventario."),
+        (71000 in nums and 24540 in nums, "Imprime el valor total por categoría (Tecnología y Muebles)."),
     ]
